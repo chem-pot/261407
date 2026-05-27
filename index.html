@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>불꽃 반응 색 변화 시뮬레이션</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f1a2e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Malgun Gothic', sans-serif;
+            color: white;
+            padding-bottom: 40px;
+        }
+
+        h1 {
+            margin-top: 25px;
+            font-size: 26px;
+            color: #e8e8ff;
+            text-shadow: 0 0 20px rgba(150,150,255,0.6);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #8888aa;
+            margin-bottom: 15px;
+            margin-top: 5px;
+        }
+
+        .button-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 720px;
+            padding: 0 12px;
+        }
+
+        .group-label {
+            font-size: 12px;
+            color: #7777aa;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .element-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .compound-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .sub-btn {
+            padding: 11px 6px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .element-btn {
+            background: linear-gradient(160deg, #2a2a50, #1c1c38);
+            color: #ccccff;
+            border: 1.5px solid #44446a;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+        .element-btn:hover {
+            background: linear-gradient(160deg, #3a3a62, #2a2a4a);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+        }
+        .element-btn.active {
+            border: 2px solid #aaaaff;
+            box-shadow: 0 0 14px rgba(170,170,255,0.6);
+        }
+
+        .compound-btn {
+            background: linear-gradient(160deg, #0f2a35, #091e28);
+            color: #88ccdd;
+            border: 1.5px solid #1e5060;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+            font-size: 13px;
+        }
+        .compound-btn:hover {
+            background: linear-gradient(160deg, #1a3a48, #0f2a35);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+        }
+        .compound-btn.active {
+            border: 2px solid #55bbdd;
+            box-shadow: 0 0 14px rgba(85,187,221,0.55);
+        }
+
+        .reset-btn {
+            background: linear-gradient(145deg, #2a2a3a, #1e1e2e);
+            color: #aaaacc;
+            border: 1.5px solid #44445a;
+            padding: 9px 28px;
+            border-radius: 22px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            margin-top: 4px;
+        }
+        .reset-btn:hover {
+            background: linear-gradient(145deg, #3a3a50, #2a2a3e);
+            transform: translateY(-2px);
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent, rgba(150,150,255,0.18), transparent);
+            margin: 2px 0;
+        }
+
+        /* ── 플라스크 ── */
+        .flask-wrapper {
+            position: relative;
+            width: 320px;
+            height: 400px;
+            margin: 5px auto;
+        }
+        .flask-svg { width: 320px; height: 400px; }
+
+        .flame-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 320px; height: 400px;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: riseUp linear forwards;
+        }
+        @keyframes riseUp {
+            0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0.95; }
+            50%  { opacity: 0.6; }
+            100% { transform: translateY(-100px) translateX(var(--drift)) scale(0.1); opacity: 0; }
+        }
+
+        /* ── 정보 패널 ── */
+        .info-panel {
+            background: linear-gradient(145deg, rgba(25,25,55,0.85), rgba(15,15,40,0.95));
+            border: 1px solid rgba(140,140,210,0.2);
+            border-radius: 18px;
+            padding: 18px 32px;
+            text-align: center;
+            min-width: 300px;
+            max-width: 440px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.45),
+                        inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .selected-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e0e0ff;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .color-display {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 8px 26px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 6px 0;
+            transition: all 0.5s ease;
+            letter-spacing: 1px;
+        }
+        .info-detail {
+            font-size: 12px;
+            color: #8888aa;
+            margin-top: 10px;
+            line-height: 1.75;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🔬 불꽃 반응 시뮬레이션</h1>
+<p class="subtitle">원소 또는 화합물을 선택하면 불꽃 반응 색을 확인할 수 있습니다</p>
+
+<div class="button-section">
+
+    <div class="group-label">⚗️ 원소</div>
+    <div class="element-grid">
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Li','원소','빨간색')">Li</button>
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Ca','원소','주황색')">Ca</button>
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Na','원소','노란색')">Na</button>
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Ba','원소','초록색')">Ba</button>
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Cu','원소','파란색')">Cu</button>
+        <button class="sub-btn element-btn"
+            onclick="selectSubstance(this,'Sr','원소','빨간색')">Sr</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="group-label">🧪 화합물</div>
+    <div class="compound-grid">
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'SrCO₃','화합물','빨간색')">SrCO₃</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'NaNO₃','화합물','노란색')">NaNO₃</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'CaCO₃','화합물','주황색')">CaCO₃</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'CuCl₂','화합물','파란색')">CuCl₂</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'BaCO₃','화합물','초록색')">BaCO₃</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'CaSO₄','화합물','주황색')">CaSO₄</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'NaCO₃','화합물','노란색')">NaCO₃</button>
+        <button class="sub-btn compound-btn"
+            onclick="selectSubstance(this,'CuCO₃','화합물','파란색')">CuCO₃</button>
+    </div>
+
+    <button class="reset-btn" onclick="resetAll()">🔄 초기화</button>
+</div>
+
+<!-- ── 삼각 플라스크 ── -->
+<div class="flask-wrapper">
+    <svg class="flask-svg" viewBox="0 0 320 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="glassBody" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="rgba(140,190,240,0.18)"/>
+                <stop offset="30%"  stop-color="rgba(200,230,255,0.30)"/>
+                <stop offset="60%"  stop-color="rgba(180,215,250,0.12)"/>
+                <stop offset="100%" stop-color="rgba(120,170,220,0.20)"/>
+            </linearGradient>
+            <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%"   id="liqTop"    stop-color="rgba(200,200,220,0.3)"/>
+                <stop offset="100%" id="liqBottom" stop-color="rgba(200,200,220,0.6)"/>
+            </linearGradient>
+            <clipPath id="liquidClip">
+                <polygon points="133,58 187,58 240,150 278,240 278,335 42,335 42,240 80,150"/>
+            </clipPath>
+            <linearGradient id="highlight1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="rgba(255,255,255,0.22)"/>
+                <stop offset="100%" stop-color="rgba(255,255,255,0.0)"/>
+            </linearGradient>
+        </defs>
+
+        <polygon id="liquidPoly"
+            points="133,58 187,58 240,150 278,240 278,335 42,335 42,240 80,150"
+            fill="url(#liquidGrad)" clip-path="url(#liquidClip)" opacity="0.85"/>
+
+        <polygon
+            points="133,58 187,58 240,150 278,240 278,338 42,338 42,240 80,150"
+            fill="url(#glassBody)"
+            stroke="rgba(180,220,255,0.75)"
+            stroke-width="2.5" stroke-linejoin="round"/>
+
+        <rect x="130" y="14" width="60" height="50"
+            fill="rgba(160,205,245,0.14)"
+            stroke="rgba(180,220,255,0.75)"
+            stroke-width="2.5" rx="4"/>
+
+        <rect x="124" y="8" width="72" height="13"
+            fill="rgba(170,215,255,0.28)"
+            stroke="rgba(200,235,255,0.85)"
+            stroke-width="2" rx="5"/>
+
+        <polygon points="80,155 103,155 75,310 52,295"
+            fill="url(#highlight1)" opacity="0.7"/>
+        <line x1="97"  y1="165" x2="60"  y2="315"
+            stroke="rgba(255,255,255,0.13)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="112" y1="140" x2="88"  y2="250"
+            stroke="rgba(255,255,255,0.07)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="136" y1="16"  x2="136" y2="60"
+            stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+
+        <path id="liquidSurface"
+            d="M 95,185 Q 115,178 135,185 Q 158,192 182,185 Q 205,178 225,185"
+            fill="none" stroke="rgba(255,255,255,0.0)"
+            stroke-width="2" stroke-linecap="round"/>
+
+        <circle id="bubble1" cx="130" cy="265" r="7"
+            fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2"/>
+        <circle id="bubble2" cx="175" cy="215" r="5"
+            fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2"/>
+        <circle id="bubble3" cx="155" cy="295" r="6"
+            fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2"/>
+        <circle id="bubble4" cx="200" cy="270" r="4"
+            fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+
+        <rect x="18" y="335" width="284" height="16" rx="5"
+            fill="rgba(130,175,220,0.35)"
+            stroke="rgba(180,220,255,0.6)" stroke-width="2"/>
+        <rect x="18" y="335" width="284" height="5" rx="5"
+            fill="rgba(255,255,255,0.08)"/>
+        <ellipse cx="160" cy="338" rx="80" ry="5"
+            fill="rgba(180,220,255,0.07)"/>
+    </svg>
+    <div class="flame-container" id="flameContainer"></div>
+</div>
+
+<!-- ── 정보 패널 ── -->
+<div class="info-panel">
+    <div class="selected-name" id="selectedName">선택된 물질 없음</div>
+    <div class="color-display" id="colorDisplay"
+         style="background:rgba(80,80,100,0.4);color:#777;border:1px solid #444;">
+        물질을 선택하세요
+    </div>
+    <div class="info-detail" id="infoDetail">
+        위 버튼에서 원소 또는 화합물을 선택하세요.<br>
+        <span style="color:#5555aa;">
+            불꽃 반응은 전자의 에너지 전이에 의해<br>특정 파장의 빛이 방출되는 현상입니다.
+        </span>
+    </div>
+</div>
+
+<script>
+    const COLOR_HEX = {
+        '빨간색': '#ff2020',
+        '주황색': '#ff8c00',
+        '노란색': '#ffdd00',
+        '초록색': '#22cc44',
+        '파란색': '#1e90ff',
+    };
+
+    // ── 설명에서 토금속·전이금속 표현 제거 ──
+    const DETAIL = {
+        'Li':    'Li (리튬)<br>불꽃 반응 시 빨간색 빛을 방출합니다.',
+        'Sr':    'Sr (스트론튬)<br>불꽃 반응 시 선명한 빨간색 빛을 방출합니다.',
+        'Ca':    'Ca (칼슘)<br>불꽃 반응 시 주황색 빛을 방출합니다.',
+        'Na':    'Na (나트륨)<br>불꽃 반응 시 매우 강렬한 노란색 빛을 방출합니다.',
+        'Ba':    'Ba (바륨)<br>불꽃 반응 시 초록색 빛을 방출합니다.',
+        'Cu':    'Cu (구리)<br>불꽃 반응 시 파란색 빛을 방출합니다.',
+        'SrCO₃':'SrCO₃ (탄산스트론튬)<br>Sr²⁺ 이온에 의해 빨간색 불꽃이 나타납니다.',
+        'CaCO₃':'CaCO₃ (탄산칼슘)<br>Ca²⁺ 이온에 의해 주황색 불꽃이 나타납니다.',
+        'CaSO₄':'CaSO₄ (황산칼슘)<br>Ca²⁺ 이온에 의해 주황색 불꽃이 나타납니다.',
+        'NaCO₃':'NaCO₃ (탄산나트륨)<br>Na⁺ 이온에 의해 노란색 불꽃이 나타납니다.',
+        'NaNO₃':'NaNO₃ (질산나트륨)<br>Na⁺ 이온에 의해 노란색 불꽃이 나타납니다.',
+        'BaCO₃':'BaCO₃ (탄산바륨)<br>Ba²⁺ 이온에 의해 초록색 불꽃이 나타납니다.',
+        'CuCO₃':'CuCO₃ (탄산구리)<br>Cu²⁺ 이온에 의해 파란색 불꽃이 나타납니다.',
+        'CuCl₂':'CuCl₂ (염화구리)<br>Cu²⁺ 이온에 의해 파란색 불꽃이 나타납니다.',
+    };
+
+    let particleInterval = null;
+
+    function selectSubstance(btn, name, type, colorName) {
+        document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const hex = COLOR_HEX[colorName];
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+
+        document.getElementById('selectedName').textContent =
+            `${type === '원소' ? '⚗️' : '🧪'} ${name}`;
+
+        const cd = document.getElementById('colorDisplay');
+        cd.textContent      = `🔥 ${colorName}`;
+        cd.style.background = `rgba(${r},${g},${b},0.22)`;
+        cd.style.color      = hex;
+        cd.style.border     = `1.5px solid ${hex}`;
+        cd.style.boxShadow  = `0 0 18px rgba(${r},${g},${b},0.5),
+                                inset 0 0 10px rgba(${r},${g},${b},0.12)`;
+        cd.style.textShadow = `0 0 10px ${hex}`;
+
+        document.getElementById('infoDetail').innerHTML =
+            `${DETAIL[name] || ''}<br><br>
+            <span style="color:#5555aa; font-size:11px;">
+                💡 전자가 에너지를 흡수한 후 낮은 에너지 준위로 떨어지면서<br>
+                특정 파장의 빛을 방출합니다.
+            </span>`;
+
+        updateFlask(r, g, b);
+        startFlame(hex, r, g, b);
+    }
+
+    function updateFlask(r, g, b) {
+        document.getElementById('liqTop').setAttribute('stop-color',
+            `rgba(${r},${g},${b},0.28)`);
+        document.getElementById('liqBottom').setAttribute('stop-color',
+            `rgba(${r},${g},${b},0.65)`);
+        ['bubble1','bubble2','bubble3','bubble4'].forEach(id => {
+            const el = document.getElementById(id);
+            el.setAttribute('fill',   `rgba(${r},${g},${b},0.15)`);
+            el.setAttribute('stroke', `rgba(${r},${g},${b},0.45)`);
+        });
+        document.getElementById('liquidSurface')
+            .setAttribute('stroke', `rgba(${r},${g},${b},0.35)`);
+    }
+
+    function startFlame(hex, r, g, b) {
+        const container = document.getElementById('flameContainer');
+        if (particleInterval) { clearInterval(particleInterval); container.innerHTML = ''; }
+
+        particleInterval = setInterval(() => {
+            for (let i = 0; i < 4; i++) createParticle(container, 160, 12, hex, r, g, b);
+            const ps = container.querySelectorAll('.particle');
+            if (ps.length > 90) for (let i = 0; i < 6; i++) if (ps[i]) ps[i].remove();
+        }, 70);
+    }
+
+    function createParticle(container, cx, cy, hex, r, g, b) {
+        const el    = document.createElement('div');
+        el.classList.add('particle');
+        const size  = Math.random() * 13 + 5;
+        const offX  = (Math.random() - 0.5) * 36;
+        const dur   = (Math.random() * 0.7 + 0.55).toFixed(2);
+        const drift = ((Math.random() - 0.5) * 30).toFixed(1) + 'px';
+        el.style.cssText = `
+            width:${size}px; height:${size}px;
+            left:${cx + offX - size/2}px;
+            top:${cy - size/2}px;
+            background: radial-gradient(circle,
+                rgba(255,255,255,0.95) 0%, ${hex} 55%,
+                rgba(${r},${g},${b},0.3) 100%);
+            box-shadow: 0 0 ${size*1.8}px ${hex},
+                        0 0 ${size*3.5}px rgba(${r},${g},${b},0.5);
+            --drift:${drift};
+            animation-duration:${dur}s;
+        `;
+        container.appendChild(el);
+        setTimeout(() => el.remove(), dur * 1000 + 100);
+    }
+
+    function resetAll() {
+        if (particleInterval) { clearInterval(particleInterval); particleInterval = null; }
+        document.getElementById('flameContainer').innerHTML = '';
+        document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+
+        document.getElementById('liqTop').setAttribute('stop-color','rgba(200,200,220,0.3)');
+        document.getElementById('liqBottom').setAttribute('stop-color','rgba(200,200,220,0.6)');
+        ['bubble1','bubble2','bubble3','bubble4'].forEach(id => {
+            const el = document.getElementById(id);
+            el.setAttribute('fill',   'rgba(255,255,255,0.07)');
+            el.setAttribute('stroke', 'rgba(255,255,255,0.18)');
+        });
+        document.getElementById('liquidSurface')
+            .setAttribute('stroke','rgba(255,255,255,0.0)');
+
+        document.getElementById('selectedName').textContent = '선택된 물질 없음';
+        const cd = document.getElementById('colorDisplay');
+        cd.textContent      = '물질을 선택하세요';
+        cd.style.background = 'rgba(80,80,100,0.4)';
+        cd.style.color      = '#777';
+        cd.style.border     = '1px solid #444';
+        cd.style.boxShadow  = 'none';
+        cd.style.textShadow = 'none';
+        document.getElementById('infoDetail').innerHTML =
+            '위 버튼에서 원소 또는 화합물을 선택하세요.<br>' +
+            '<span style="color:#5555aa;">불꽃 반응은 전자의 에너지 전이에 의해<br>' +
+            '특정 파장의 빛이 방출되는 현상입니다.</span>';
+    }
+</script>
+</body>
+</html>
